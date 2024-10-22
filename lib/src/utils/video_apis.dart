@@ -4,6 +4,7 @@ import 'dart:developer';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/http.dart';
+import 'logger.dart';
 import 'package:youtube_explode_dart/youtube_explode_dart.dart';
 import '../models/vimeo_models.dart';
 
@@ -125,9 +126,11 @@ class VideoApis {
     bool live,
   ) async {
     try {
+      podLog('Fetching YouTube video quality URLs for: $youtubeIdOrUrl');
       final yt = YoutubeExplode();
       final urls = <VideoQalityUrls>[];
       if (live) {
+        podLog('Fetching live stream URL');
         final url = await yt.videos.streamsClient.getHttpLiveStreamUrl(
           VideoId(youtubeIdOrUrl),
         );
@@ -138,6 +141,7 @@ class VideoApis {
           ),
         );
       } else {
+        podLog('Fetching video manifest');
         final manifest =
             await yt.videos.streamsClient.getManifest(youtubeIdOrUrl);
         urls.addAll(
@@ -149,10 +153,11 @@ class VideoApis {
           ),
         );
       }
-      // Close the YoutubeExplode's http client.
       yt.close();
+      podLog('Fetched YouTube video quality URLs: $urls');
       return urls;
     } catch (error) {
+      podLog('Error fetching YouTube video quality URLs: $error');
       if (error.toString().contains('XMLHttpRequest')) {
         log(
           podErrorString(

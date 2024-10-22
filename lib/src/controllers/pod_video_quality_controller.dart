@@ -82,12 +82,7 @@ class _PodVideoQualityController extends _PodVideoController {
   }) async {
     sortQualityVideoUrls(videoUrls);
     if (vimeoOrVideoUrls.isEmpty) {
-      // Add default video qualities for testing
-      vimeoOrVideoUrls = [
-        VideoQalityUrls(quality: 360, url: 'https://example.com/360p.mp4'),
-        VideoQalityUrls(quality: 720, url: 'https://example.com/720p.mp4'),
-        VideoQalityUrls(quality: 1080, url: 'https://example.com/1080p.mp4'),
-      ];
+      throw Exception('No video quality URLs available');
     }
 
     final fallback = vimeoOrVideoUrls[0];
@@ -113,8 +108,11 @@ class _PodVideoQualityController extends _PodVideoController {
     String youtubeIdOrUrl,
     bool live,
   ) async {
-    return await VideoApis.getYoutubeVideoQualityUrls(youtubeIdOrUrl, live) ??
-        [];
+    podLog('Getting YouTube video quality URLs for: $youtubeIdOrUrl');
+    final urls =
+        await VideoApis.getYoutubeVideoQualityUrls(youtubeIdOrUrl, live) ?? [];
+    podLog('YouTube video quality URLs: $urls');
+    return urls;
   }
 
   Future<void> changeVideoQuality(int? quality) async {
