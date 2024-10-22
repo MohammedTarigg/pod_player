@@ -109,10 +109,16 @@ class _PodVideoQualityController extends _PodVideoController {
     bool live,
   ) async {
     podLog('Getting YouTube video quality URLs for: $youtubeIdOrUrl');
-    final urls =
-        await VideoApis.getYoutubeVideoQualityUrls(youtubeIdOrUrl, live) ?? [];
-    podLog('YouTube video quality URLs: $urls');
-    return urls;
+    try {
+      final urls =
+          await VideoApis.getYoutubeVideoQualityUrls(youtubeIdOrUrl, live) ??
+              [];
+      podLog('YouTube video quality URLs: $urls');
+      return urls;
+    } catch (e) {
+      podLog('Error getting YouTube video quality URLs: $e');
+      rethrow;
+    }
   }
 
   Future<void> changeVideoQuality(int? quality) async {

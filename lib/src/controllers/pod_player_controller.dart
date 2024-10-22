@@ -42,44 +42,28 @@ class PodPlayerController {
   ///
   /// If the provided video cannot be loaded, an exception could be thrown.
   Future<void> initialise() async {
-    if (!_isCtrInitialised) {
-      _init();
+    podLog('PodPlayerController: initialise started');
+    try {
+      await _ctr.videoInit();
+      podLog('PodPlayerController: videoInit completed');
+      await _checkAndWaitTillInitialized();
+      podLog('PodPlayerController: initialise completed');
+    } catch (error) {
+      podLog('PodPlayerController: Error during initialisation: $error');
+      _initializationError = error;
+      rethrow;
     }
-    WidgetsBinding.instance.addPostFrameCallback((timeStamp) async {
-      try {
-        if (!_isCtrInitialised) {
-          await _ctr.videoInit();
-          podLog('$getTag Pod player Initialized');
-        } else {
-          podLog('$getTag Pod Player Controller Already Initialized');
-        }
-      } catch (error) {
-        podLog('$getTag Pod Player Controller failed to initialize');
-        _initializationError = error;
-      }
-    });
-    await _checkAndWaitTillInitialized();
   }
 
   Future<void> _checkAndWaitTillInitialized() async {
-    if (_ctr.controllerInitialized) {
-      _isCtrInitialised = true;
-      return;
+    podLog('PodPlayerController: _checkAndWaitTillInitialized started');
+    if (!_ctr.initialized) {
+      podLog('PodPlayerController: Video not initialized, waiting...');
+      await Future.delayed(const Duration(milliseconds: 500));
+      await _checkAndWaitTillInitialized();
+    } else {
+      podLog('PodPlayerController: Video initialized');
     }
-
-    /// If a wrong video is passed to the player, it'll never being loaded.
-    if (_initializationError != null) {
-      if (_initializationError! is Exception) {
-        throw _initializationError! as Exception;
-      }
-      if (_initializationError! is Error) {
-        throw _initializationError! as Error;
-      }
-      throw Exception(_initializationError.toString());
-    }
-
-    await Future<void>.delayed(const Duration(milliseconds: 500));
-    await _checkAndWaitTillInitialized();
   }
 
   /// returns the url of current playing video
