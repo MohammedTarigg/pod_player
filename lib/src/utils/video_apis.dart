@@ -126,11 +126,11 @@ class VideoApis {
     bool live,
   ) async {
     try {
-      podLog('Fetching YouTube video quality URLs for: $youtubeIdOrUrl');
+      debugPrint('Fetching YouTube video quality URLs for: $youtubeIdOrUrl');
       final yt = YoutubeExplode();
       final urls = <VideoQalityUrls>[];
       if (live) {
-        podLog('Fetching live stream URL');
+        debugPrint('Fetching live stream URL');
         final url = await yt.videos.streamsClient.getHttpLiveStreamUrl(
           VideoId(youtubeIdOrUrl),
         );
@@ -141,7 +141,7 @@ class VideoApis {
           ),
         );
       } else {
-        podLog('Fetching video manifest');
+        debugPrint('Fetching video manifest');
         final manifest =
             await yt.videos.streamsClient.getManifest(youtubeIdOrUrl);
         urls.addAll(
@@ -154,10 +154,10 @@ class VideoApis {
         );
       }
       yt.close();
-      podLog('Fetched YouTube video quality URLs: $urls');
+      debugPrint('Fetched YouTube video quality URLs: $urls');
       return urls;
     } catch (error) {
-      podLog('Error fetching YouTube video quality URLs: $error');
+      debugPrint('Error fetching YouTube video quality URLs: $error');
       if (error.toString().contains('XMLHttpRequest')) {
         log(
           podErrorString(

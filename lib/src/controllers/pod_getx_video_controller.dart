@@ -54,7 +54,7 @@ class PodGetXVideoController extends _PodGesturesController {
   Future<void> videoInit() async {
     ///
     // checkPlayerType();
-    podLog(_videoPlayerType.toString());
+    debugPrint(_videoPlayerType.toString());
     try {
       await _initializePlayer();
       await _videoCtr?.initialize();
@@ -75,7 +75,7 @@ class PodGetXVideoController extends _PodGesturesController {
       podVideoStateChanger(PodVideoState.error);
       update(['errorState']);
       update(['update-all']);
-      podLog('ERROR ON POD_PLAYER:  $e');
+      debugPrint('ERROR ON POD_PLAYER:  $e');
       rethrow;
     }
   }
@@ -110,12 +110,12 @@ class PodGetXVideoController extends _PodGesturesController {
         playingVideoUrl = url;
 
       case PodVideoPlayerType.youtube:
-        podLog('Initializing YouTube video');
+        debugPrint('Initializing YouTube video');
         final urls = await getVideoQualityUrlsFromYoutube(
           playVideoFrom.dataSource!,
           playVideoFrom.live,
         );
-        podLog('YouTube URLs: $urls');
+        debugPrint('YouTube URLs: $urls');
         if (urls.isEmpty) {
           throw Exception('No YouTube video URLs available');
         }
@@ -123,7 +123,7 @@ class PodGetXVideoController extends _PodGesturesController {
           qualityList: podPlayerConfig.videoQualityPriority,
           videoUrls: urls,
         );
-        podLog('Selected YouTube URL: $url');
+        debugPrint('Selected YouTube URL: $url');
 
         _videoCtr = VideoPlayerController.networkUrl(
           Uri.parse(url),
@@ -250,7 +250,7 @@ class PodGetXVideoController extends _PodGesturesController {
 
   ///this func will listne to update id `_podVideoState`
   void podStateListner() {
-    podLog(_podVideoState.toString());
+    debugPrint(_podVideoState.toString());
     switch (_podVideoState) {
       case PodVideoState.playing:
         if (podPlayerConfig.wakelockEnabled) WakelockPlus.enable();
