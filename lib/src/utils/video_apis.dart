@@ -76,7 +76,7 @@ class VideoApis {
           ),
         );
       }
-      debugPrint('===== VIMEO API ERROR: $error ==========');
+      podLog('===== VIMEO API ERROR: $error ==========');
       rethrow;
     }
   }
@@ -116,7 +116,7 @@ class VideoApis {
           ),
         );
       }
-      debugPrint('===== VIMEO API ERROR: $error ==========');
+      podLog('===== VIMEO API ERROR: $error ==========');
       rethrow;
     }
   }
@@ -126,11 +126,11 @@ class VideoApis {
     bool live,
   ) async {
     try {
-      debugPrint('Fetching YouTube video quality URLs for: $youtubeIdOrUrl');
+      podLog('Fetching YouTube video quality URLs for: $youtubeIdOrUrl');
       final yt = YoutubeExplode();
       final urls = <VideoQalityUrls>[];
       if (live) {
-        debugPrint('Fetching live stream URL');
+        podLog('Fetching live stream URL');
         final url = await yt.videos.streamsClient.getHttpLiveStreamUrl(
           VideoId(youtubeIdOrUrl),
         );
@@ -141,7 +141,7 @@ class VideoApis {
           ),
         );
       } else {
-        debugPrint('Fetching video manifest');
+        podLog('Fetching video manifest');
         final manifest =
             await yt.videos.streamsClient.getManifest(youtubeIdOrUrl);
         urls.addAll(
@@ -154,10 +154,10 @@ class VideoApis {
         );
       }
       yt.close();
-      debugPrint('Fetched YouTube video quality URLs: $urls');
+      podLog('Fetched YouTube video quality URLs: $urls');
       return urls;
     } catch (error) {
-      debugPrint('Error fetching YouTube video quality URLs: $error');
+      podLog('Error fetching YouTube video quality URLs: $error');
       if (error.toString().contains('XMLHttpRequest')) {
         log(
           podErrorString(
@@ -165,7 +165,7 @@ class VideoApis {
           ),
         );
       }
-      debugPrint('===== YOUTUBE API ERROR: $error ==========');
+      podLog('===== YOUTUBE API ERROR: $error ==========');
       rethrow;
     }
   }
