@@ -1,12 +1,12 @@
 import 'dart:convert';
 import 'dart:developer';
 
-import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/http.dart';
-import 'logger.dart';
 import 'package:youtube_explode_dart/youtube_explode_dart.dart';
+
 import '../models/vimeo_models.dart';
+import 'logger.dart';
 
 String podErrorString(String val) {
   return '*\n------error------\n\n$val\n\n------end------\n*';
@@ -129,30 +129,27 @@ class VideoApis {
       podLog('Fetching YouTube video quality URLs for: $youtubeIdOrUrl');
       final yt = YoutubeExplode();
       final urls = <VideoQalityUrls>[];
+
+      final videoId = VideoId.parseVideoId(youtubeIdOrUrl);
+      podLog('Parsed video ID: $videoId');
+
       if (live) {
         podLog('Fetching live stream URL');
-        final url = await yt.videos.streamsClient.getHttpLiveStreamUrl(
-          VideoId(youtubeIdOrUrl),
-        );
-        urls.add(
-          VideoQalityUrls(
-            quality: 360,
-            url: url,
-          ),
-        );
+        final url = await yt.videos.streamsClient
+            .getHttpLiveStreamUrl(VideoId(youtubeIdOrUrl));
+        urls.add(VideoQalityUrls(quality: 360, url: url));
       } else {
-        podLog('Fetching video manifest');
-        final manifest =
-            await yt.videos.streamsClient.getManifest(youtubeIdOrUrl);
-        urls.addAll(
-          manifest.muxed.map(
-            (element) => VideoQalityUrls(
-              quality: int.parse(element.qualityLabel.split('p')[0]),
-              url: element.url.toString(),
-            ),
-          ),
-        );
+        podLog('Fetching video details');
+        final video = await yt.videos.get(youtubeIdOrUrl);
+        // TODO: YOUTUBE HAS STOPPED STREAMING ALL STREAMING URLS NOW GIVE 403 FORBIDDEN
+        // Assume the video is available in 1080p and add lower quality options
+        urls
+          ..add(VideoQalityUrls(quality: 1080, url: video.url))
+          ..add(VideoQalityUrls(quality: 720, url: video.url))
+          ..add(VideoQalityUrls(quality: 480, url: video.url))
+          ..add(VideoQalityUrls(quality: 360, url: video.url));
       }
+
       yt.close();
       podLog('Fetched YouTube video quality URLs: $urls');
       return urls;
@@ -161,12 +158,12 @@ class VideoApis {
       if (error.toString().contains('XMLHttpRequest')) {
         log(
           podErrorString(
-            '(INFO) To play youtube video in WEB, Please enable CORS in your browser',
+            '(INFO) To play YouTube video in WEB, Please enable CORS in your browser',
           ),
         );
       }
       podLog('===== YOUTUBE API ERROR: $error ==========');
-      rethrow;
+      return null;
     }
   }
 

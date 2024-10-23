@@ -4,10 +4,10 @@ import 'package:flutter/cupertino.dart';
 import 'package:get/get.dart';
 import 'package:universal_html/html.dart' as uni_html;
 import 'package:wakelock_plus/wakelock_plus.dart';
+import 'package:youtube_explode_dart/youtube_explode_dart.dart';
 
 import '../../pod_player.dart';
 import '../utils/logger.dart';
-import '../utils/video_apis.dart';
 import 'pod_getx_video_controller.dart';
 
 class PodPlayerController {
@@ -276,11 +276,70 @@ class PodPlayerController {
     _ctr.onVimeoVideoQualityChanged = callback;
   }
 
-  static Future<List<VideoQalityUrls>?> getYoutubeUrls(
-    String youtubeIdOrUrl, {
-    bool live = false,
-  }) {
-    return VideoApis.getYoutubeVideoQualityUrls(youtubeIdOrUrl, live);
+  static Future<List<VideoQalityUrls>?> getYoutubeVideoQualityUrls(
+    String youtubeIdOrUrl,
+    bool live,
+  ) async {
+    try {
+      podLog(
+        'Fetching YouTube video quality URLs for: $youtubeIdOrUrl, live: $live',
+      );
+      final yt = YoutubeExplode();
+      final urls = <VideoQalityUrls>[];
+
+      final videoId = VideoId.parseVideoId(youtubeIdOrUrl);
+      podLog('Parsed video ID: $videoId');
+
+      if (live) {
+        podLog('Fetching live stream URL');
+        final url = await yt.videos.streamsClient
+            .getHttpLiveStreamUrl(VideoId(youtubeIdOrUrl));
+        urls.add(VideoQalityUrls(quality: 360, url: url));
+      } else {
+        podLog('Fetching video manifest');
+        final manifest =
+            await yt.videos.streamsClient.getManifest(youtubeIdOrUrl);
+        podLog('Manifest fetched successfully');
+
+        // Get the best audio stream
+        final audioStream = manifest.audioOnly.withHighestBitrate();
+
+        // Get all video streams (including video-only and muxed)
+        final videoStreams =
+            manifest.streams.whereType<VideoStreamInfo>().toList()
+              ..sort(
+                (a, b) => b.videoQuality.index.compareTo(a.videoQuality.index),
+              );
+
+        for (final stream in videoStreams) {
+          final quality =
+              int.tryParse(stream.videoQuality.toString().split('p')[0]) ?? 0;
+          urls.add(
+            VideoQalityUrls(
+              quality: quality,
+              url: stream.url.toString(),
+            ),
+          );
+          podLog(
+            'Added quality: $quality, Video URL: ${stream.url}, Audio URL: ${audioStream.url}',
+          );
+        }
+      }
+      yt.close();
+      podLog('Fetched YouTube video quality URLs: $urls');
+      return urls;
+    } catch (error) {
+      podLog('Error fetching YouTube video quality URLs: $error');
+      if (error.toString().contains('XMLHttpRequest')) {
+        podLog(
+          podErrorString(
+            '(INFO) To play youtube video in WEB, Please enable CORS in your browser',
+          ),
+        );
+      }
+      podLog('===== YOUTUBE API ERROR: $error ==========');
+      rethrow;
+    }
   }
 
   static Future<List<VideoQalityUrls>?> getVimeoUrls(

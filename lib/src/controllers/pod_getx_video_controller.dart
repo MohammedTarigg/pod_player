@@ -10,7 +10,6 @@ import 'package:wakelock_plus/wakelock_plus.dart';
 
 import '../../pod_player.dart';
 import '../utils/logger.dart';
-import '../utils/video_apis.dart';
 
 part 'pod_base_controller.dart';
 part 'pod_gestures_controller.dart';
@@ -120,7 +119,9 @@ class PodGetXVideoController extends _PodGesturesController {
             videoId,
             playVideoFrom.live,
           );
-          podLog('YouTube URLs: $urls');
+          podLog(
+            'YouTube URLs (${playVideoFrom.live ? 'live' : 'muxed'}): $urls',
+          );
           if (urls.isEmpty) {
             throw Exception('No YouTube video URLs available');
           }
@@ -132,14 +133,22 @@ class PodGetXVideoController extends _PodGesturesController {
 
           _videoCtr = VideoPlayerController.networkUrl(
             Uri.parse(url),
-            closedCaptionFile: playVideoFrom.closedCaptionFile,
-            formatHint: playVideoFrom.formatHint,
-            videoPlayerOptions: playVideoFrom.videoPlayerOptions,
-            httpHeaders: playVideoFrom.httpHeaders,
           );
+
           playingVideoUrl = url;
+
+          // Add event listener for error
+          _videoCtr!.addListener(() {
+            if (_videoCtr!.value.hasError) {
+              podLog(
+                'Video player error: ${_videoCtr!.value.errorDescription}',
+              );
+              podVideoStateChanger(PodVideoState.error);
+            }
+          });
         } catch (e) {
           podLog('Error initializing YouTube player: $e');
+          podVideoStateChanger(PodVideoState.error);
           rethrow;
         }
       case PodVideoPlayerType.vimeo:
@@ -306,10 +315,16 @@ class PodGetXVideoController extends _PodGesturesController {
 
   String? _extractYoutubeVideoId(String url) {
     final regExp = RegExp(
-      r'^.*(?:(?:youtu\.be\/|v\/|vi\/|u\/\w\/|embed\/)|(?:(?:watch)?\?v(?:i)?=|\&v(?:i)?=))([^#\&\?]*).*',
+      r'^.*((youtu.be\/)|(v\/)|(\/u\/\w\/)|(embed\/)|(watch\?))\??v?=?([^#&?]*).*',
       caseSensitive: false,
     );
     final match = regExp.firstMatch(url);
-    return match?.group(1);
+    return match?.group(7);
+  }
+
+  // Expose this method for testing
+  @visibleForTesting
+  String? extractYoutubeVideoId(String url) {
+    return _extractYoutubeVideoId(url);
   }
 }
