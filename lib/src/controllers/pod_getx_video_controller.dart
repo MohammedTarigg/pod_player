@@ -111,28 +111,37 @@ class PodGetXVideoController extends _PodGesturesController {
 
       case PodVideoPlayerType.youtube:
         podLog('Initializing YouTube video');
-        final urls = await getVideoQualityUrlsFromYoutube(
-          playVideoFrom.dataSource!,
-          playVideoFrom.live,
-        );
-        podLog('YouTube URLs: $urls');
-        if (urls.isEmpty) {
-          throw Exception('No YouTube video URLs available');
-        }
-        final url = await getUrlFromVideoQualityUrls(
-          qualityList: podPlayerConfig.videoQualityPriority,
-          videoUrls: urls,
-        );
-        podLog('Selected YouTube URL: $url');
+        try {
+          final videoId = _extractYoutubeVideoId(playVideoFrom.dataSource!);
+          if (videoId == null) {
+            throw Exception('Invalid YouTube URL or video ID');
+          }
+          final urls = await getVideoQualityUrlsFromYoutube(
+            videoId,
+            playVideoFrom.live,
+          );
+          podLog('YouTube URLs: $urls');
+          if (urls.isEmpty) {
+            throw Exception('No YouTube video URLs available');
+          }
+          final url = await getUrlFromVideoQualityUrls(
+            qualityList: podPlayerConfig.videoQualityPriority,
+            videoUrls: urls,
+          );
+          podLog('Selected YouTube URL: $url');
 
-        _videoCtr = VideoPlayerController.networkUrl(
-          Uri.parse(url),
-          closedCaptionFile: playVideoFrom.closedCaptionFile,
-          formatHint: playVideoFrom.formatHint,
-          videoPlayerOptions: playVideoFrom.videoPlayerOptions,
-          httpHeaders: playVideoFrom.httpHeaders,
-        );
-        playingVideoUrl = url;
+          _videoCtr = VideoPlayerController.networkUrl(
+            Uri.parse(url),
+            closedCaptionFile: playVideoFrom.closedCaptionFile,
+            formatHint: playVideoFrom.formatHint,
+            videoPlayerOptions: playVideoFrom.videoPlayerOptions,
+            httpHeaders: playVideoFrom.httpHeaders,
+          );
+          playingVideoUrl = url;
+        } catch (e) {
+          podLog('Error initializing YouTube player: $e');
+          rethrow;
+        }
       case PodVideoPlayerType.vimeo:
         await getQualityUrlsFromVimeoId(
           playVideoFrom.dataSource!,
@@ -293,5 +302,14 @@ class PodGetXVideoController extends _PodGesturesController {
     keyboardFocusWeb?.requestFocus();
     keyboardFocusWeb?.addListener(keyboadListner);
     await videoInit();
+  }
+
+  String? _extractYoutubeVideoId(String url) {
+    final regExp = RegExp(
+      r'^.*(?:(?:youtu\.be\/|v\/|vi\/|u\/\w\/|embed\/)|(?:(?:watch)?\?v(?:i)?=|\&v(?:i)?=))([^#\&\?]*).*',
+      caseSensitive: false,
+    );
+    final match = regExp.firstMatch(url);
+    return match?.group(1);
   }
 }
