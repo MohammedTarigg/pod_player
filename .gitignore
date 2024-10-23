@@ -8,7 +8,7 @@
 .buildlog/
 .history
 .svn/
-
+/youtube_player_flutter/
 # IntelliJ related
 *.iml
 *.ipr

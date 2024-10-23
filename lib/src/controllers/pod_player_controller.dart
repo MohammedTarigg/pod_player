@@ -44,7 +44,29 @@ class PodPlayerController {
   Future<void> initialise() async {
     podLog('PodPlayerController: initialise started');
     try {
-      await _ctr.videoInit();
+      // Integrate YouTube player's video fetching logic
+      if (playVideoFrom.dataSource != null) {
+        final videoId = _extractVideoId(playVideoFrom.dataSource!);
+        if (videoId != null) {
+          final videoUrls = await VideoApis.getYoutubeVideoQualityUrls(
+            videoId,
+            playVideoFrom.live,
+          );
+          if (videoUrls != null && videoUrls.isNotEmpty) {
+            // Instead of modifying playVideoFrom, we'll use the fetched URL directly
+            await _ctr.videoInit();
+          } else {
+            // If no URLs are found, proceed with the original dataSource
+            await _ctr.videoInit();
+          }
+        } else {
+          // If no video ID is extracted, proceed with the original dataSource
+          await _ctr.videoInit();
+        }
+      } else {
+        // If no dataSource is provided, proceed with the original videoInit
+        await _ctr.videoInit();
+      }
       podLog('PodPlayerController: videoInit completed');
       await _checkAndWaitTillInitialized();
       podLog('PodPlayerController: initialise completed');
@@ -59,7 +81,7 @@ class PodPlayerController {
     podLog('PodPlayerController: _checkAndWaitTillInitialized started');
     if (!_ctr.initialized) {
       podLog('PodPlayerController: Video not initialized, waiting...');
-      await Future.delayed(const Duration(milliseconds: 500));
+      await Future<void>.delayed(const Duration(milliseconds: 500));
       await _checkAndWaitTillInitialized();
     } else {
       podLog('PodPlayerController: Video initialized');
@@ -162,11 +184,32 @@ class PodPlayerController {
   Future<void> changeVideo({
     required PlayVideoFrom playVideoFrom,
     PodPlayerConfig playerConfig = const PodPlayerConfig(),
-  }) =>
-      _ctr.changeVideo(
-        playVideoFrom: playVideoFrom,
-        playerConfig: playerConfig,
-      );
+  }) async {
+    PlayVideoFrom updatedPlayVideoFrom = playVideoFrom;
+
+    if (playVideoFrom.dataSource != null) {
+      final videoId = _extractVideoId(playVideoFrom.dataSource!);
+      if (videoId != null) {
+        try {
+          final videoUrls = await VideoApis.getYoutubeVideoQualityUrls(
+            videoId,
+            playVideoFrom.live,
+          );
+          if (videoUrls != null && videoUrls.isNotEmpty) {
+            updatedPlayVideoFrom = PlayVideoFrom.network(videoUrls.first.url);
+          }
+        } catch (e) {
+          podLog('Error fetching YouTube video URL: $e');
+          // Fallback to original dataSource if fetching fails
+        }
+      }
+    }
+
+    return _ctr.changeVideo(
+      playVideoFrom: updatedPlayVideoFrom,
+      playerConfig: playerConfig,
+    );
+  }
 
   //Change double tap duration
   void setDoubeTapForwarDuration(int seconds) =>
@@ -252,4 +295,12 @@ class PodPlayerController {
 
   /// Show overlay of video
   void showOverlay() => _ctr.isShowOverlay(true);
+
+  String? _extractVideoId(String url) {
+    // Implement YouTube video ID extraction logic here
+    // This is a simplified example, you may need to handle different URL formats
+    final regex = RegExp(r'(?:youtube\.com\/watch\?v=|youtu.be\/)([^&\n?#]+)');
+    final match = regex.firstMatch(url);
+    return match?.group(1);
+  }
 }
