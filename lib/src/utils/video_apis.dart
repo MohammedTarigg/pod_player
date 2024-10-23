@@ -169,4 +169,45 @@ class VideoApis {
       rethrow;
     }
   }
+
+  static Future<List<VideoQalityUrls>> getVideoQualityUrlsFromYoutube(
+    String videoId,
+    bool live,
+  ) async {
+    try {
+      final response = await http.get(
+        Uri.parse(
+          'https://www.youtube.com/get_video_info?video_id=$videoId',
+        ),
+      );
+      if (response.statusCode == 200) {
+        final data = Uri.decodeFull(response.body);
+        final playerResponse = jsonDecode(
+          Uri.decodeFull(
+            RegExp('player_response=(.*)&').firstMatch(data)!.group(1)!,
+          ),
+        );
+        final streamingData = playerResponse['streamingData'];
+        final formats = streamingData['formats'] as List<dynamic>;
+        return formats
+            .map(
+              (format) => VideoQalityUrls(
+                quality: int.tryParse(
+                      format['qualityLabel']
+                          .toString()
+                          .replaceAll(RegExp(r'[^\d]'), ''),
+                    ) ??
+                    0,
+                url: format['url'] as String? ?? '',
+              ),
+            )
+            .toList();
+      } else {
+        throw Exception('Failed to load video info');
+      }
+    } catch (e) {
+      podLog('Error fetching YouTube video URLs: $e');
+      return [];
+    }
+  }
 }
